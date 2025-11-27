@@ -13,8 +13,8 @@ version.
 from typing import Final
 
 # Version Information
-VERSION: Final[str] = "2.0.0"
-VERSION_NAME: Final[str] = "Revival Edition"
+VERSION: Final[str] = "2.1.0"
+VERSION_NAME: Final[str] = "Skills Edition"
 
 # Thread Status
 THSTAT_WAITING: Final[int] = 0
@@ -62,7 +62,7 @@ ERROR_NETWORK: Final[str] = "network_error"
 ERROR_SSL: Final[str] = "ssl_error"
 ERROR_AUTH: Final[str] = "authentication_error"
 
-# Vulnerability Types
+# Vulnerability Types - Core
 VULNTYPE_SQLI: Final[str] = "sqli"
 VULNTYPE_XSS: Final[str] = "xss"
 VULNTYPE_CMDI: Final[str] = "command_injection"
@@ -76,6 +76,24 @@ VULNTYPE_SSTI: Final[str] = "ssti"  # Server-Side Template Injection
 VULNTYPE_XXE: Final[str] = "xxe"
 VULNTYPE_CORS: Final[str] = "cors_misconfiguration"
 VULNTYPE_JWT: Final[str] = "jwt_vulnerability"
+
+# Vulnerability Types - Advanced (New in v2.1)
+VULNTYPE_HTTP_SMUGGLING: Final[str] = "http_request_smuggling"
+VULNTYPE_CACHE_POISONING: Final[str] = "cache_poisoning"
+VULNTYPE_CACHE_DECEPTION: Final[str] = "cache_deception"
+VULNTYPE_HOST_HEADER: Final[str] = "host_header_injection"
+VULNTYPE_RACE_CONDITION: Final[str] = "race_condition"
+VULNTYPE_PROTOTYPE_POLLUTION: Final[str] = "prototype_pollution"
+VULNTYPE_DOM_XSS: Final[str] = "dom_xss"
+VULNTYPE_CSWSH: Final[str] = "cross_site_websocket_hijacking"
+VULNTYPE_GRAPHQL_INTROSPECTION: Final[str] = "graphql_introspection"
+VULNTYPE_GRAPHQL_BATCHING: Final[str] = "graphql_batching"
+VULNTYPE_CRLF: Final[str] = "crlf_injection"
+VULNTYPE_CLICKJACKING: Final[str] = "clickjacking"
+VULNTYPE_CSRF: Final[str] = "csrf"
+VULNTYPE_INFO_DISCLOSURE: Final[str] = "information_disclosure"
+VULNTYPE_BROKEN_AUTH: Final[str] = "broken_authentication"
+VULNTYPE_MASS_ASSIGNMENT: Final[str] = "mass_assignment"
 
 # HTTP Methods
 METHOD_GET: Final[str] = "GET"
