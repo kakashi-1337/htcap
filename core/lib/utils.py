@@ -27,8 +27,10 @@ from html.parser import HTMLParser
 from core.lib.shell import CommandExecutor
 
 def get_program_infos():
+	from core.constants import VERSION, VERSION_NAME
 	infos = {
-		"version": "1.1",
+		"version": VERSION,
+		"version_name": VERSION_NAME,
 		"author_name": "Filippo Cavallarin",
 		"author_email": "filippo.cavallarin@wearesegment.com"
 	}
