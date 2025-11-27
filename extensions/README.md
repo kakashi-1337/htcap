@@ -132,6 +132,86 @@ for url in urls:
     throttler.wait()
 ```
 
+## Proxy Rotator
+
+Manage and rotate proxies for distributed scanning:
+
+```python
+from extensions.lib import ProxyRotator, ProxyType
+
+rotator = ProxyRotator()
+
+# Add proxies
+rotator.add_proxy("http://proxy1.example.com:8080")
+rotator.add_proxy("socks5://proxy2.example.com:1080", proxy_type=ProxyType.SOCKS5)
+
+# Load from file (one proxy per line)
+rotator.load_from_file("proxies.txt")
+
+# Get proxy with smart selection (considers health)
+proxy = rotator.get_proxy()
+
+# Report results to improve selection
+rotator.report_success(proxy, response_time=0.5)
+rotator.report_failure(proxy, "timeout")
+
+# Get statistics
+stats = rotator.get_stats()
+print(f"Total: {stats['total']}, Healthy: {stats['healthy']}")
+```
+
+### Rotation Strategies
+
+| Strategy | Description |
+|----------|-------------|
+| ROUND_ROBIN | Sequential rotation through all proxies |
+| RANDOM | Random selection |
+| SMART | Weighted by health and response time |
+
+## Notifications
+
+Send scan results to Slack, Discord, Telegram, or custom webhooks:
+
+```python
+from extensions.lib import NotificationManager, Severity
+
+# Set up notifications
+manager = NotificationManager(min_severity=Severity.MEDIUM)
+manager.add_slack("https://hooks.slack.com/services/...")
+manager.add_discord("https://discord.com/api/webhooks/...")
+manager.add_telegram("BOT_TOKEN", "CHAT_ID")
+manager.add_webhook("https://your-endpoint.com/webhook")
+
+# Start async worker (optional, for background sending)
+manager.start()
+
+# Send notifications
+manager.notify_scan_started("https://target.com")
+manager.notify_vulnerability(
+    vuln_type="XSS",
+    url="https://target.com/page?q=test",
+    description="Reflected XSS in search parameter",
+    severity=Severity.HIGH,
+    parameter="q"
+)
+manager.notify_scan_completed("https://target.com", vuln_count=5)
+
+# Cleanup
+manager.stop()
+```
+
+### Notification Types
+
+| Type | Description |
+|------|-------------|
+| SCAN_STARTED | Scan initiated |
+| SCAN_COMPLETED | Scan finished with summary |
+| VULNERABILITY_FOUND | Security issue detected |
+| WAF_DETECTED | WAF detected on target |
+| ERROR | Scan error occurred |
+| WARNING | Non-critical issue |
+| RATE_LIMITED | Rate limiting detected |
+
 ## Available Fuzzers
 
 All custom fuzzers are in `core/scan/fuzzers/`:
