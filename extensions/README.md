@@ -10,10 +10,16 @@ extensions/
 ├── README.md
 ├── lib/
 │   ├── __init__.py
-│   ├── waf_handler.py      # WAF detection & bypass
-│   └── stealth.py          # Stealth crawling mode
+│   ├── waf_handler.py         # WAF detection & bypass
+│   ├── stealth.py             # Stealth crawling mode
+│   ├── proxy_rotator.py       # Proxy pool management
+│   ├── notifications.py       # Slack/Discord/Telegram alerts
+│   ├── taint_tracking.py      # DOM taint flow analysis
+│   ├── websocket_analyzer.py  # WebSocket security testing
+│   ├── postmessage_analyzer.py # postMessage vulnerability detection
+│   └── dom_clobbering.py      # DOM clobbering detection
 ├── fuzzers/
-│   └── __init__.py         # Re-exports core fuzzers
+│   └── __init__.py            # Re-exports core fuzzers
 └── utils/
     └── __init__.py
 ```
@@ -228,6 +234,170 @@ All custom fuzzers are in `core/scan/fuzzers/`:
 | DOM XSS | `dom_xss.py` | DOM-based XSS |
 | GraphQL | `graphql_injection.py` | GraphQL injection |
 | SSRF | `ssrf.py` | Server-side request forgery |
+
+## Taint Tracking (DOM XSS Analysis)
+
+Track data flow from sources to sinks for DOM XSS detection:
+
+```python
+from extensions.lib import TaintTracker, URLTaintAnalyzer
+
+# Analyze JavaScript for taint flows
+tracker = TaintTracker()
+flows = tracker.analyze(javascript_code)
+
+for flow in flows:
+    if flow.exploitable:
+        print(f"Source: {flow.source.type.value} -> Sink: {flow.sink.type.value}")
+        print(f"Severity: {flow.sink.severity.value}")
+        print(f"Payload: {flow.payload_suggestion}")
+
+# Get summary
+summary = tracker.get_summary()
+print(f"Found {summary['exploitable_flows']} exploitable flows")
+
+# Analyze URL parameter reflection
+url_analyzer = URLTaintAnalyzer()
+reflections = url_analyzer.analyze_url_reflection(
+    url="https://example.com/search?q=test",
+    page_source=html_content
+)
+```
+
+### Source Types
+| Source | Description |
+|--------|-------------|
+| URL | location.href, location.search, location.hash |
+| DOCUMENT_REFERRER | document.referrer |
+| WINDOW_NAME | window.name |
+| LOCAL_STORAGE | localStorage data |
+| POST_MESSAGE | postMessage event data |
+
+### Sink Types
+| Sink | Severity | Impact |
+|------|----------|--------|
+| eval() | CRITICAL | Direct code execution |
+| innerHTML | HIGH | HTML injection |
+| location | MEDIUM | Open redirect |
+| document.write | HIGH | Full DOM control |
+
+## WebSocket Analyzer
+
+Analyze WebSocket communications for security issues:
+
+```python
+from extensions.lib import WebSocketAnalyzer, MessageDirection
+
+analyzer = WebSocketAnalyzer()
+
+# Register endpoint
+analyzer.add_endpoint("wss://api.example.com/socket", origin="https://example.com")
+
+# Record messages (from traffic capture)
+analyzer.record_message(
+    endpoint_url="wss://api.example.com/socket",
+    direction=MessageDirection.CLIENT_TO_SERVER,
+    data='{"action": "get_user", "id": 123}'
+)
+
+# Analyze for vulnerabilities
+vulns = analyzer.analyze()
+
+for vuln in vulns:
+    print(f"Type: {vuln.vuln_type.value}")
+    print(f"Severity: {vuln.severity}")
+    print(f"Recommendations: {vuln.recommendations}")
+
+# Generate injection payloads for testing
+payloads = analyzer.generate_injection_payloads('{"user_id": "123"}')
+```
+
+### WebSocket Vulnerability Types
+| Type | Severity | Description |
+|------|----------|-------------|
+| NO_TLS | High | Using ws:// instead of wss:// |
+| MISSING_AUTH | High | No authentication in handshake |
+| CSWSH | High | Cross-Site WebSocket Hijacking |
+| INJECTION | Medium | Potential injection points |
+| SENSITIVE_DATA | Medium | Credentials in messages |
+| IDOR | Medium | ID manipulation possible |
+
+## postMessage Analyzer
+
+Detect postMessage vulnerabilities (inspired by DOM Invader):
+
+```python
+from extensions.lib import PostMessageAnalyzer
+
+analyzer = PostMessageAnalyzer()
+
+# Analyze JavaScript for postMessage handlers
+vulns = analyzer.analyze(javascript_code)
+
+for vuln in vulns:
+    print(f"Type: {vuln.vuln_type.value}")
+    print(f"Severity: {vuln.severity}")
+    print(f"Exploit: {vuln.exploit_scenario}")
+
+    # Generate PoC
+    poc = analyzer.generate_exploit_poc(vuln)
+    print(f"PoC HTML:\n{poc}")
+
+# Check handler details
+for handler in analyzer.handlers:
+    print(f"Origin check: {handler.has_origin_check}")
+    print(f"Strength: {handler.origin_check_strength.value}")
+    print(f"Dangerous sinks: {handler.vulnerable_patterns}")
+```
+
+### postMessage Vulnerability Types
+| Type | Severity | Description |
+|------|----------|-------------|
+| MISSING_ORIGIN_CHECK | High | No event.origin validation |
+| WEAK_ORIGIN_CHECK | Medium | Bypassable origin validation |
+| WILDCARD_TARGET | Medium | Using '*' as targetOrigin |
+| XSS_VIA_MESSAGE | High | innerHTML with message data |
+| EVAL_MESSAGE | Critical | eval() with message data |
+| PROTOTYPE_POLLUTION | Medium | Object spread with message data |
+
+## DOM Clobbering Detector
+
+Detect DOM clobbering vulnerabilities:
+
+```python
+from extensions.lib import DOMClobberingDetector
+
+detector = DOMClobberingDetector()
+
+# Analyze HTML and JavaScript
+vulns = detector.analyze(html_content, javascript_code)
+
+for vuln in vulns:
+    print(f"Target: {vuln.target.name}")
+    print(f"Severity: {vuln.severity}")
+    print(f"Impact: {vuln.target.impact.value}")
+
+    # Get attack vectors
+    for vector in vuln.vectors:
+        print(f"Payload: {vector.html_payload}")
+        print(f"Bypasses: {vector.bypasses}")
+
+# Generate test HTML
+test_html = detector.generate_test_html("someConfig")
+
+# Check if code has clobbering protection
+protections = detector.check_clobbering_protection(js_code, "globalVar")
+print(f"typeof check: {protections['typeof_check']}")
+print(f"instanceof check: {protections['instanceof_check']}")
+```
+
+### DOM Clobbering Impacts
+| Impact | Description |
+|--------|-------------|
+| CODE_EXECUTION | Clobbered value reaches eval/innerHTML |
+| SECURITY_BYPASS | Clobbered value affects auth/location |
+| DATA_EXFILTRATION | Clobbered value used in fetch/XHR |
+| DOM_MANIPULATION | General DOM changes |
 
 ## Usage Notes
 
